@@ -1,13 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
-	"io"
 	"strings"
 )
 
-type LogLine struct {
+type TX struct {
 	Msg []struct {
 		Type    string `json:"@type"`
 		Creator string `json:"creator"`
@@ -23,13 +21,13 @@ type LogLine struct {
 	} `json:"msg"`
 }
 
-func (l LogLine) MarshalMetadata() ([]byte, error) {
+func (tx TX) MarshalMetadata() ([]byte, error) {
 	data := map[string]interface{}{
-		"creator": l.Msg[0].Creator,
-		"deposit": l.Msg[0].Deposit,
+		"creator": tx.Msg[0].Creator,
+		"deposit": tx.Msg[0].Deposit,
 		// add what is needed
 	}
-	return json.Marshal(data)
+	return json.MarshalIndent(data, "", "	")
 }
 
 func findSubstringPositions(input, substring string) []int {
@@ -47,23 +45,4 @@ func findSubstringPositions(input, substring string) []int {
 	}
 
 	return positions
-}
-
-func lineCounter(r io.Reader) (int, error) {
-	buf := make([]byte, 32*1024)
-	count := 0
-	lineSep := []byte{'\n'}
-
-	for {
-		c, err := r.Read(buf)
-		count += bytes.Count(buf[:c], lineSep)
-
-		switch {
-		case err == io.EOF:
-			return count, nil
-
-		case err != nil:
-			return count, err
-		}
-	}
 }
