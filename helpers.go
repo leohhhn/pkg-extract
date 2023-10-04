@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"strings"
 )
@@ -20,6 +21,15 @@ type LogLine struct {
 		} `json:"package"`
 		Deposit string `json:"deposit"`
 	} `json:"msg"`
+}
+
+func (l LogLine) MarshalMetadata() ([]byte, error) {
+	data := map[string]interface{}{
+		"creator": l.Msg[0].Creator,
+		"deposit": l.Msg[0].Deposit,
+		// add what is needed
+	}
+	return json.Marshal(data)
 }
 
 func findSubstringPositions(input, substring string) []int {

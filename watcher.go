@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"sync"
 )
 
@@ -31,10 +32,9 @@ func processFile(fileName string, wg *sync.WaitGroup) {
 
 	pkgMap := make(map[string]LogLine) // path -> package
 
-	i := 0
 	scanner := bufio.NewScanner(file)
 
-	for scanner.Scan() {
+	for i := 0; scanner.Scan(); i++ {
 		var logLine LogLine
 
 		line := scanner.Text()
@@ -44,24 +44,43 @@ func processFile(fileName string, wg *sync.WaitGroup) {
 			continue
 		}
 
-		msg := logLine.Msg[0]
-		if msg.Type == "/vm.m_addpkg" {
+		if logLine.Msg[0].Type == "/vm.m_addpkg" {
+			path := logLine.Msg[0].Package.Path
 
-			path := msg.Package.Path
 			// do not add duplicates
 			_, ok := pkgMap[path]
-
 			if !ok {
-				pkgMap[path] = logLine
+				writePkg(logLine)
+				pkgMap[path] = logLine // possibly not needed
 			}
-			i++
 		}
-
 	}
 }
 
-func writePkg(pkgPath string) {
-	fmt.Println("")
+func writePkg(logLine LogLine) {
+	msg := logLine.Msg[0]
+	path := msg.Package.Path
+
+	// do routines for each file write
+	trimmedPath := strings.TrimLeft(path, "gno.land/")
+
+	// write dirs needed to write package
+	if err := os.MkdirAll("extracted/"+trimmedPath, os.ModePerm); err != nil {
+		log.Fatal(err)
+	}
+
+	metadata, err := logLine.MarshalMetadata()
+
+	if err != nil {
+		log.Fatal("Failed to marshal metadata: " + trimmedPath)
+	}
+	// write metadata
+	err = os.WriteFile("extracted/"+trimmedPath+"/metadata.json", metadata, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// write files
 
 }
 
