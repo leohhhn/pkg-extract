@@ -2,3 +2,4 @@
 logs
 extracted
 .env
+go.sum
